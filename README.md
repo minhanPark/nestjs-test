@@ -1,73 +1,63 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# 정리
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 커스텀 파이프
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+커스텀 파이프를 만들기 위해서는 Pipe Transform을 갖고와서 상속해야함.  
+또 이것과 함께 transform 메소드를 필요로 합니다.
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
-$ npm install
+```js
+transform(처리가 된 인자의 값, 인자에 대한 메타 데이터)
 ```
 
-## Running the app
+```js
+import { PipeTransform, BadRequestException } from "@nestjs/common";
+import { BoardStatus } from "../board.model";
 
-```bash
-# development
-$ npm run start
+export class BoardStatusValidationPipe implements PipeTransform {
+  readonly StatusOptions = [BoardStatus.PRIVATE, BoardStatus.PUBLIC];
 
-# watch mode
-$ npm run start:dev
+  transform(value: any) {
+    value = value.toUpperCase();
+    if (!this.isStatusValid(value)) {
+      throw new BadRequestException(`${value} isn't in the status`);
+    }
+    return value;
+  }
 
-# production mode
-$ npm run start:prod
+  private isStatusValid(status: any) {
+    const index = this.StatusOptions.indexOf(status);
+    return index !== -1;
+  }
+}
 ```
 
-## Test
+지금은 value만 사용해서 value만 받지만 metadata를 받으면 두번째 인자로 사용해주면됨.
 
-```bash
-# unit tests
-$ npm run test
+## typeorm 설치
 
-# e2e tests
-$ npm run test:e2e
+> @nestjs/typeorm  
+> nestjs에서 typeorm을 사용하기 위해 연동시켜주는 모듈
 
-# test coverage
-$ npm run test:cov
-```
+> typeorm  
+> typeorm 모듈
 
-## Support
+> pg  
+> postgres 모듈
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## dto 작성 시 class를 사용하는 이유
 
-## Stay in touch
+DTO는 데이터가 네트워크를 통해 전송되는 방법을 정의하는 객체다.  
+인터페이스를 이용하거나 클래스를 이용할 수 있는데 클래스를 추천한다.  
+클래스는 Javascript ES6의 표준이기 때문에 컴파일 된 후에도 엔터티로 보존되는 반면에 인터페이스는 변환중에 제거되기 때문에  
+Nest는 런타임에 참조할 수가 없습니다.(이것은 파이프와 같은 기능에서 런타임에 변수의 메타타입에 접근할 가능성이 있을 수도 있기 때문입니다. )
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## 모듈을 불러 올 때 forRoot와 forRootAsync 차이
 
-## License
+기본적으로 독립적이거나 값이 다 하드코딩 되어 있다면 forRoot를 사용하는 것 같다.  
+그러나 다른 모듈 등에서 값을 받아와야 한다면 forRootAsync를 사용해야 값을 가져오는 것 같다.  
+즉 해당 모듈을 동기적으로 실행시켜도 될지, 아니면 다른 모듈과 연관이 있어서 비동기적으로 실행해야하는 지에 대한 차이인듯
 
-Nest is [MIT licensed](LICENSE).
+## Repository ?
+
+데이터베이스에 관련 된 일은 서비스에서 하는게 아닌 Repository에서 하면된다.  
+이것을 Repository Pattern 이라고 부릅니다.(데이터 베이스 관련 일 - INSERT, FIND, DELETE 등)
